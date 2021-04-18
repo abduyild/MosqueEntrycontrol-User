@@ -4,15 +4,15 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:flutter_qr/userManagement.dart';
 import 'package:http/http.dart' as http;
 
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:path_provider/path_provider.dart';
-
-void main() async{
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart';
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
   runApp(MyApp());
@@ -23,23 +23,30 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Mosque Entrycontrol',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // Try running your application with "flutter run". You'll see the
-        // application has a blue toolbar. Then, without quitting the app, try
-        // changing the primarySwatch below to Colors.green and then invoke
-        // "hot reload" (press "r" in the console where you ran "flutter run",
-        // or simply save your changes to "hot reload" in a Flutter IDE).
-        // Notice that the counter didn't reset back to zero; the application
-        // is not restarted.
-        primarySwatch: Colors.blue,
-        // This makes the visual density adapt to the platform that you run
-        // the app on. For desktop platforms, the controls will be smaller and
-        // closer together (more dense) than on mobile platforms.
-        visualDensity: VisualDensity.adaptivePlatformDensity,
-
+        brightness: Brightness.light,
+        primaryColor: Colors.white,
+        accentColor: Colors.white,
+        scaffoldBackgroundColor: Colors.white,
+        textSelectionHandleColor: Colors.black,
+        textSelectionColor: Colors.black12,
+        cursorColor: Colors.black,
+        toggleableActiveColor: Colors.black,
+        inputDecorationTheme: InputDecorationTheme(
+          border: const OutlineInputBorder(
+            borderSide: BorderSide(color: Colors.black),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderSide: BorderSide(color: Colors.black.withOpacity(0.1)),
+          ),
+          focusedBorder: const OutlineInputBorder(
+            borderSide: BorderSide(color: Colors.black),
+          ),
+          labelStyle: const TextStyle(
+            color: Colors.black,
+          ),
+        ),
       ),
       debugShowCheckedModeBanner: false,
       home: MyHomePage(title: 'Mosque Entrycontrol'),
@@ -56,54 +63,35 @@ class MyHomePage extends StatefulWidget {
   _MyHomePageState createState() => _MyHomePageState(this.title);
 }
 
-class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMixin{
-
+class _MyHomePageState extends State<MyHomePage>
+    with SingleTickerProviderStateMixin {
   _MyHomePageState(this.title);
+
   final title;
 
   String imageUrl;
-  String _email;
-  String _password;
   bool color = false;
   Color pickerColor = new Color(0xff443a49);
   AnimationController _animationController;
 
-  String qrUrl ="";
-  String name;
-
+  String qrUrl = "";
 
   _read() async {
     final prefs = await SharedPreferences.getInstance();
     final key = 'qrUrl';
     final value = prefs.getString(key) ?? "";
-    print('read: $value');
     qrUrl = value;
   }
 
-
   @override
   void initState() {
-    _animationController = AnimationController(vsync: this, duration: Duration(milliseconds: 450));
+    _animationController =
+        AnimationController(vsync: this, duration: Duration(milliseconds: 450));
     super.initState();
   }
-
-  void _handleOnPressed(){
-    setState(() {
-      color = !color;
-      color ? _animationController.forward() :
-      _animationController.reverse();
-    });
-  }
-
-  void changeColor(Color color){
-    setState(() {
-      pickerColor = color;
-
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
+    _read();
     // This method is rerun every time setState is called, for instance as done
     // by the _incrementCounter method above.
     //
@@ -112,249 +100,32 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
     // than having to individually change instances of widgets.
     return Scaffold(
       appBar: AppBar(
-        title: Text(name == null ? "Mosque Entrycontrol" : "Welcome, ${name}"),
-        leading: Icon(Icons.android, color: Colors.greenAccent,),
-        backgroundColor:  Color.fromRGBO(0, 36, 124, 1),
+        title: Text("Mosque Entrycontrol"),
+        leading: Icon(
+          Icons.android,
+          color: Colors.greenAccent,
+        ),
+        backgroundColor: Colors.white,
         elevation: 0,
         actions: [
           IconButton(
-            icon: Icon(Icons.image, color: Colors.white,),
-            onPressed: (){
-
-            },
-          )
+              icon: Icon(
+                Icons.account_circle_outlined,
+                color: Colors.white,
+              ))
         ],
       ),
-
-      backgroundColor: Color.fromRGBO(0, 36, 124, 1),
+      backgroundColor: Colors.white,
       body: ListView(
-        children: [
-          FirebaseAuth.instance.currentUser != null ?
-          getLoggedIn(context)
-              :
-
-          Center(
-            child: Column(
-              children: [
-                SizedBox(
-                  height: 20,
-                ),
-                Stack(
-                  children: [
-                    Center(
-                      child: Container(
-                        height: 200,
-                        width: 200,
-                        child: Image.asset('assets/frame.png'),
-                      ),
-                    ),
-
-                    qrUrl != null ? Center(
-                      child: Container(
-                        padding: EdgeInsets.only(top: 10),
-                        height: 190,
-                        width: 190,
-                        child: FadeInImage.assetNetwork(placeholder: "assets/loading.gif", image: qrUrl),
-                      ),
-                    ): Container()
-                  ],
-                ),
-
-                SizedBox(
-                  height: 20,
-                ),
-                Container(
-                  height: 40,
-                  width: 300,
-                  decoration: BoxDecoration(
-                      borderRadius: BorderRadius.all(Radius.circular(100)),
-                      color: Colors.white70
-                  ),
-                  child: Center(
-                    child: ListTile(
-                      title: Container(
-                        padding: EdgeInsets.only(bottom: 10),
-                        child: TextFormField(
-                          cursorColor: Colors.black,
-                          onChanged: (value){
-                            setState(() {
-                              _email = value;
-                            });
-                          },
-                          decoration: new InputDecoration(
-                              icon: Container(
-                                padding: EdgeInsets.only(left: 10),
-                                child: Icon(Icons.supervised_user_circle, color: Colors.black87,),
-                              ),
-                              hintText: "Enter Email",
-                              border: InputBorder.none,
-                              focusedBorder: InputBorder.none,
-                              enabledBorder: InputBorder.none,
-                              errorBorder: InputBorder.none,
-                              disabledBorder: InputBorder.none,
-                              contentPadding: EdgeInsets.only(left: 15, bottom: 11, top: 11, right: 15)
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-
-                SizedBox(
-                  height: 20,
-                ),
-                Container(
-                  height: 40,
-                  width: 300,
-                  decoration: BoxDecoration(
-                      borderRadius: BorderRadius.all(Radius.circular(100)),
-                      color: Colors.white70
-                  ),
-                  child: Center(
-                    child: ListTile(
-                      title: Container(
-                        padding: EdgeInsets.only(bottom: 10),
-                        child: TextFormField(
-                          cursorColor: Colors.black,
-                          onChanged: (value){
-                            setState(() {
-                              name = value;
-                            });
-                          },
-                          decoration: new InputDecoration(
-                              icon: Container(
-                                padding: EdgeInsets.only(left: 10),
-                                child: Icon(Icons.edit, color: Colors.black87,),
-                              ),
-                              hintText: "Enter Name",
-                              border: InputBorder.none,
-                              focusedBorder: InputBorder.none,
-                              enabledBorder: InputBorder.none,
-                              errorBorder: InputBorder.none,
-                              disabledBorder: InputBorder.none,
-                              contentPadding: EdgeInsets.only(left: 15, bottom: 11, top: 11, right: 15)
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-
-                SizedBox(
-                  height: 20,
-                ),
-                Container(
-                  height: 40,
-                  width: 300,
-                  decoration: BoxDecoration(
-                      borderRadius: BorderRadius.all(Radius.circular(100)),
-                      color: Colors.white70
-                  ),
-                  child: Center(
-                    child: ListTile(
-                      title: Container(
-                        padding: EdgeInsets.only(bottom: 10),
-                        child: TextFormField(
-                          cursorColor: Colors.black,
-                          onChanged: (value){
-                            setState(() {
-                              _password = value;
-                            });
-                          },
-                          decoration: new InputDecoration(
-                              icon: Container(
-                                padding: EdgeInsets.only(left: 10),
-                                child: Icon(Icons.vpn_key, color: Colors.black87,),
-                              ),
-                              hintText: "Enter password",
-                              border: InputBorder.none,
-                              focusedBorder: InputBorder.none,
-                              enabledBorder: InputBorder.none,
-                              errorBorder: InputBorder.none,
-                              disabledBorder: InputBorder.none,
-                              contentPadding: EdgeInsets.only(left: 15, bottom: 11, top: 11, right: 15)
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-
-
-                SizedBox(
-                  height: 15,
-                ),
-
-
-                SizedBox(
-                  height: 20,
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      margin: EdgeInsets.only(bottom: 50),
-                      height: 70,
-                      width: 150,
-                      decoration: BoxDecoration(
-                          borderRadius: BorderRadius.all(Radius.circular(100)),
-                          color: Color.fromRGBO(255, 144, 39, 1)
-                      ),
-                      child: FlatButton(
-                        child: Text("CREATE QR", style: TextStyle(
-                            color: Colors.white
-                        ),),
-                        onPressed: (){
-                          if(_email != null){
-                            FirebaseAuth.instance.createUserWithEmailAndPassword(
-                                email: _email,
-                                password: _password).then((value) {
-                              setState(() {
-                                UserManagement().storeNewUser(value.user, context, name);
-                              });
-                            });
-
-                          }
-                        },
-                      ),
-                    ),
-                    SizedBox(
-                      width: 15,
-                    ),
-                    Container(
-                      margin: EdgeInsets.only(bottom: 50),
-                      height: 70,
-                      width: 150,
-                      decoration: BoxDecoration(
-                          borderRadius: BorderRadius.all(Radius.circular(100)),
-                          color: Color.fromRGBO(0, 180, 245, 1)
-                      ),
-                      child: FlatButton(
-                        child: Text("SAVE QR", style: TextStyle(
-                            color: Colors.white
-                        ),),
-                        onPressed: (){
-
-                        },
-                      ),
-                    )
-
-                  ],
-                )
-
-              ],
-            ),
-          )
-        ],
-      ),
-
-    );
+          children: [
+      FirebaseAuth.instance.currentUser != null
+      ? getLoggedIn(context)
+          : registerForm(context)
+      ],
+    ),);
   }
 
-  Widget getLoggedIn(BuildContext context){
-    var uid = FirebaseAuth.instance.currentUser.uid;
-    _read();
-    print("************************************************* -" + qrUrl + "-*************************");
+  Widget getLoggedIn(BuildContext context) {
     return Center(
       child: Column(
         children: [
@@ -363,18 +134,197 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
           ),
           Stack(
             children: [
-              qrUrl != "" ? Center(
+              Center(
                 child: Container(
                   padding: EdgeInsets.only(top: 10),
                   height: 250,
                   width: 250,
-                  child: FadeInImage.assetNetwork(placeholder: "assets/loading.gif", image: qrUrl),
+                  child: qrUrl != "" ?
+                  FadeInImage.assetNetwork(
+                      placeholder: "assets/loading.gif", image: qrUrl) :
+                  Image.asset(
+                    "assets/loading.gif",
+                    height: 250.0,
+                    width: 250.0,
+                  ),
                 ),
-              ): Container()
+              )
             ],
           ),
         ],
       ),
     );
   }
+
+
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  bool _agreedToTOS = true;
+
+  String fname = "";
+  String lname = "";
+  String phone = "";
+  String adress = "";
+
+  @override
+  Widget registerForm(BuildContext context) {
+    return Form(
+      key: _formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          const SizedBox(height: 32.0),
+          TextFormField(
+            decoration: const InputDecoration(
+              labelText: 'Vorname',
+            ),
+            validator: (String value) {
+              if (value
+                  .trim()
+                  .isEmpty) {
+                return 'Vorname ist erforderlich!';
+              }
+              fname = value;
+            },
+          ),
+          const SizedBox(height: 16.0),
+          TextFormField(
+            decoration: const InputDecoration(
+              labelText: 'Nachname',
+            ),
+            validator: (String value) {
+              if (value
+                  .trim()
+                  .isEmpty) {
+                return 'Nachname ist erforderlich!';
+              }
+              lname = value;
+            },
+          ),
+          const SizedBox(height: 16.0),
+          TextFormField(
+            decoration: const InputDecoration(
+              labelText: 'Telefon',
+            ),
+            validator: (String value) {
+              if (value
+                  .trim()
+                  .isEmpty) {
+                return 'Telefonnummer ist erforderlich!';
+              }
+              phone = value;
+            },
+          ),
+          const SizedBox(height: 16.0),
+          TextFormField(
+            decoration: const InputDecoration(
+              labelText: 'Adresse',
+            ),
+            validator: (String value) {
+              if (value
+                  .trim()
+                  .isEmpty) {
+                return 'Adresse ist erforderlich!';
+              }
+              adress = value;
+            },
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16.0),
+            child: Row(
+              children: <Widget>[
+                Checkbox(
+                  value: _agreedToTOS,
+                  onChanged: _setAgreedToTOS,
+                ),
+                GestureDetector(
+                  onTap: () => _setAgreedToTOS(!_agreedToTOS),
+                  child: const Text(
+                    'Ich stimme der Speicherung und Nutzung \n meiner Daten zu.',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Row(
+            children: <Widget>[
+              const Spacer(),
+              OutlineButton(
+                highlightedBorderColor: Colors.black,
+                onPressed: () {
+                  setState(() {
+                    if(_agreedToTOS) {
+                      _submit();
+                    }
+                  });
+
+                } ,
+                child: const Text('Registrieren'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _submit(){
+    _formKey.currentState.validate();
+    FirebaseAuth.instance
+        .signInAnonymously()
+        .then((value) {
+      setState(() {
+        storeNewUser(
+            value.user, fname, lname, phone, adress);
+      });
+    });
+  }
+
+  void _setAgreedToTOS(bool newValue) {
+    setState(() {
+      _agreedToTOS = newValue;
+    });
+  }
+
+  String uid;
+  storeNewUser(User user, String fname, String lname, String phone, String adress) async {
+    FirebaseFirestore.instance.collection('/users').add({
+      "firstName": fname,
+      "lastName": lname,
+      "phone": phone,
+      "address": adress,
+      'uid': user.uid,
+    }).catchError((e) {
+      print(e);
+    });
+    HttpClient httpClient = new HttpClient();
+    var request = await httpClient.getUrl(Uri.parse("https://api.qrserver.com/v1/create-qr-code/?data=${user.uid}&size=250x250"));
+    var response = await request.close();
+    var bytes = await consolidateHttpClientResponseBytes(response);
+    final Directory directory = await getApplicationDocumentsDirectory();
+    final dir = await Directory(directory.path + "/assets").create(recursive: true);
+    File file = await File('${dir.path}/${user.uid}.png').create(recursive: true);
+    await file.writeAsBytes(bytes);
+
+    UploadTask task;
+
+    final Reference firebaseStorageRef =
+    FirebaseStorage.instance.ref().child('assets/${user.uid}.png');
+    task = firebaseStorageRef.putFile(file);
+
+    TaskSnapshot snapshot = await task;
+    String downloadUrl = await snapshot.ref.getDownloadURL();
+    _save(downloadUrl);
+    setState(() {
+      qrUrl = downloadUrl;
+    });
+  }
+
+
+_save(String qrImageUrl) async {
+  final prefs = await SharedPreferences.getInstance();
+  final key = 'qrUrl';
+  final value = qrImageUrl;
+  prefs.setString(key, value);
+}
+
 }
