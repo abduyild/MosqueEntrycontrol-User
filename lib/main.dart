@@ -12,6 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
@@ -89,6 +90,7 @@ class _MyHomePageState extends State<MyHomePage>
         AnimationController(vsync: this, duration: Duration(milliseconds: 450));
     super.initState();
   }
+
   @override
   Widget build(BuildContext context) {
     _read();
@@ -110,19 +112,20 @@ class _MyHomePageState extends State<MyHomePage>
         actions: [
           IconButton(
               icon: Icon(
-                Icons.account_circle_outlined,
-                color: Colors.white,
-              ))
+            Icons.account_circle_outlined,
+            color: Colors.white,
+          ))
         ],
       ),
       backgroundColor: Colors.white,
       body: ListView(
-          children: [
-      FirebaseAuth.instance.currentUser != null
-      ? getLoggedIn(context)
-          : registerForm(context)
-      ],
-    ),);
+        children: [
+          FirebaseAuth.instance.currentUser != null
+              ? getLoggedIn(context)
+              : registerForm(context)
+        ],
+      ),
+    );
   }
 
   Widget getLoggedIn(BuildContext context) {
@@ -139,14 +142,14 @@ class _MyHomePageState extends State<MyHomePage>
                   padding: EdgeInsets.only(top: 10),
                   height: 250,
                   width: 250,
-                  child: qrUrl != "" ?
-                  FadeInImage.assetNetwork(
-                      placeholder: "assets/loading.gif", image: qrUrl) :
-                  Image.asset(
-                    "assets/loading.gif",
-                    height: 250.0,
-                    width: 250.0,
-                  ),
+                  child: qrUrl != ""
+                      ? FadeInImage.assetNetwork(
+                          placeholder: "assets/loading.gif", image: qrUrl)
+                      : Image.asset(
+                          "assets/loading.gif",
+                          height: 250.0,
+                          width: 250.0,
+                        ),
                 ),
               )
             ],
@@ -155,7 +158,6 @@ class _MyHomePageState extends State<MyHomePage>
       ),
     );
   }
-
 
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   bool _agreedToTOS = true;
@@ -177,13 +179,12 @@ class _MyHomePageState extends State<MyHomePage>
             decoration: const InputDecoration(
               labelText: 'Vorname',
             ),
-            validator: (String value) {
-              if (value
-                  .trim()
-                  .isEmpty) {
+            validator: (value) {
+              if (value == null || value.isEmpty) {
                 return 'Vorname ist erforderlich!';
               }
               fname = value;
+              return null;
             },
           ),
           const SizedBox(height: 16.0),
@@ -191,13 +192,12 @@ class _MyHomePageState extends State<MyHomePage>
             decoration: const InputDecoration(
               labelText: 'Nachname',
             ),
-            validator: (String value) {
-              if (value
-                  .trim()
-                  .isEmpty) {
+            validator: (value) {
+              if (value == null || value.isEmpty) {
                 return 'Nachname ist erforderlich!';
               }
               lname = value;
+              return null;
             },
           ),
           const SizedBox(height: 16.0),
@@ -205,13 +205,12 @@ class _MyHomePageState extends State<MyHomePage>
             decoration: const InputDecoration(
               labelText: 'Telefon',
             ),
-            validator: (String value) {
-              if (value
-                  .trim()
-                  .isEmpty) {
+            validator: (value) {
+              if (value == null || value.isEmpty) {
                 return 'Telefonnummer ist erforderlich!';
               }
               phone = value;
+              return null;
             },
           ),
           const SizedBox(height: 16.0),
@@ -219,13 +218,12 @@ class _MyHomePageState extends State<MyHomePage>
             decoration: const InputDecoration(
               labelText: 'Adresse',
             ),
-            validator: (String value) {
-              if (value
-                  .trim()
-                  .isEmpty) {
+            validator: (value) {
+              if (value == null || value.isEmpty) {
                 return 'Adresse ist erforderlich!';
               }
               adress = value;
+              return null;
             },
           ),
           Padding(
@@ -233,11 +231,16 @@ class _MyHomePageState extends State<MyHomePage>
             child: Row(
               children: <Widget>[
                 Checkbox(
-                  value: _agreedToTOS,
-                  onChanged: _setAgreedToTOS,
-                ),
+                    value: _agreedToTOS,
+                    onChanged: (bool newValue) {
+                      setState(() {
+                        _agreedToTOS = newValue;
+                      });
+                    }),
                 GestureDetector(
-                  onTap: () => _setAgreedToTOS(!_agreedToTOS),
+                  onTap: () => setState(() {
+                    _agreedToTOS = !_agreedToTOS;
+                  }),
                   child: const Text(
                     'Ich stimme der Speicherung und Nutzung \n meiner Daten zu.',
                   ),
@@ -248,16 +251,26 @@ class _MyHomePageState extends State<MyHomePage>
           Row(
             children: <Widget>[
               const Spacer(),
-              OutlineButton(
-                highlightedBorderColor: Colors.black,
+              OutlinedButton(
+                style: OutlinedButton.styleFrom(
+                  primary: Colors.black,
+                ),
                 onPressed: () {
                   setState(() {
-                    if(_agreedToTOS) {
-                      _submit();
+                    if (_formKey.currentState.validate()) {
+                      if (_agreedToTOS) {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            content: Text(
+                                'Daten werden verarbeitet, bitte warten Sie')));
+                        _submit();
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            content: Text(
+                                'Sie müssen der Verarbeitung Ihrer Daten zustimmen')));
+                      }
                     }
                   });
-
-                } ,
+                },
                 child: const Text('Registrieren'),
               ),
             ],
@@ -267,26 +280,20 @@ class _MyHomePageState extends State<MyHomePage>
     );
   }
 
-  void _submit(){
-    _formKey.currentState.validate();
-    FirebaseAuth.instance
-        .signInAnonymously()
-        .then((value) {
+  void _submit() {
+    FirebaseAuth.instance.signInAnonymously().then((value) {
       setState(() {
-        storeNewUser(
-            value.user, fname, lname, phone, adress);
+        storeNewUser(value.user, fname, lname, phone, adress);
       });
     });
   }
 
-  void _setAgreedToTOS(bool newValue) {
-    setState(() {
-      _agreedToTOS = newValue;
-    });
-  }
+  void _setAgreedToTOS(bool newValue) {}
 
   String uid;
-  storeNewUser(User user, String fname, String lname, String phone, String adress) async {
+
+  storeNewUser(User user, String fname, String lname, String phone,
+      String adress) async {
     FirebaseFirestore.instance.collection('/users').add({
       "firstName": fname,
       "lastName": lname,
@@ -297,18 +304,21 @@ class _MyHomePageState extends State<MyHomePage>
       print(e);
     });
     HttpClient httpClient = new HttpClient();
-    var request = await httpClient.getUrl(Uri.parse("https://api.qrserver.com/v1/create-qr-code/?data=${user.uid}&size=250x250"));
+    var request = await httpClient.getUrl(Uri.parse(
+        "https://api.qrserver.com/v1/create-qr-code/?data=${user.uid}&size=250x250"));
     var response = await request.close();
     var bytes = await consolidateHttpClientResponseBytes(response);
     final Directory directory = await getApplicationDocumentsDirectory();
-    final dir = await Directory(directory.path + "/assets").create(recursive: true);
-    File file = await File('${dir.path}/${user.uid}.png').create(recursive: true);
+    final dir =
+        await Directory(directory.path + "/assets").create(recursive: true);
+    File file =
+        await File('${dir.path}/${user.uid}.png').create(recursive: true);
     await file.writeAsBytes(bytes);
 
     UploadTask task;
 
     final Reference firebaseStorageRef =
-    FirebaseStorage.instance.ref().child('assets/${user.uid}.png');
+        FirebaseStorage.instance.ref().child('assets/${user.uid}.png');
     task = firebaseStorageRef.putFile(file);
 
     TaskSnapshot snapshot = await task;
@@ -319,12 +329,10 @@ class _MyHomePageState extends State<MyHomePage>
     });
   }
 
-
-_save(String qrImageUrl) async {
-  final prefs = await SharedPreferences.getInstance();
-  final key = 'qrUrl';
-  final value = qrImageUrl;
-  prefs.setString(key, value);
-}
-
+  _save(String qrImageUrl) async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = 'qrUrl';
+    final value = qrImageUrl;
+    prefs.setString(key, value);
+  }
 }
