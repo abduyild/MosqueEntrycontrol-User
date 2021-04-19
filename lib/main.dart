@@ -4,7 +4,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter_qr/userManagement.dart';
 import 'package:http/http.dart' as http;
 
 import 'package:shared_preferences/shared_preferences.dart';
@@ -84,6 +83,13 @@ class _MyHomePageState extends State<MyHomePage>
     qrUrl = value;
   }
 
+  _save(String qrImageUrl) async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = 'qrUrl';
+    final value = qrImageUrl;
+    prefs.setString(key, value);
+  }
+
   @override
   void initState() {
     _animationController =
@@ -140,16 +146,13 @@ class _MyHomePageState extends State<MyHomePage>
               Center(
                 child: Container(
                   padding: EdgeInsets.only(top: 10),
-                  height: 250,
-                  width: 250,
                   child: qrUrl != ""
-                      ? FadeInImage.assetNetwork(
-                          placeholder: "assets/loading.gif", image: qrUrl)
-                      : Image.asset(
-                          "assets/loading.gif",
+                      ? Image.file(
+                          File(qrUrl),
                           height: 250.0,
                           width: 250.0,
-                        ),
+                        )
+                      : registerForm(context),
                 ),
               )
             ],
@@ -166,139 +169,180 @@ class _MyHomePageState extends State<MyHomePage>
   String lname = "";
   String phone = "";
   String adress = "";
+  String plz = "";
+  String city = "";
+  String street  = "";
 
   @override
   Widget registerForm(BuildContext context) {
     return Form(
-      key: _formKey,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          const SizedBox(height: 32.0),
-          TextFormField(
-            decoration: const InputDecoration(
-              labelText: 'Vorname',
-            ),
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Vorname ist erforderlich!';
-              }
-              fname = value;
-              return null;
-            },
-          ),
-          const SizedBox(height: 16.0),
-          TextFormField(
-            decoration: const InputDecoration(
-              labelText: 'Nachname',
-            ),
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Nachname ist erforderlich!';
-              }
-              lname = value;
-              return null;
-            },
-          ),
-          const SizedBox(height: 16.0),
-          TextFormField(
-            decoration: const InputDecoration(
-              labelText: 'Telefon',
-            ),
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Telefonnummer ist erforderlich!';
-              }
-              phone = value;
-              return null;
-            },
-          ),
-          const SizedBox(height: 16.0),
-          TextFormField(
-            decoration: const InputDecoration(
-              labelText: 'Adresse',
-            ),
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Adresse ist erforderlich!';
-              }
-              adress = value;
-              return null;
-            },
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16.0),
-            child: Row(
-              children: <Widget>[
-                Checkbox(
-                    value: _agreedToTOS,
-                    onChanged: (bool newValue) {
-                      setState(() {
-                        _agreedToTOS = newValue;
-                      });
-                    }),
-                GestureDetector(
-                  onTap: () => setState(() {
-                    _agreedToTOS = !_agreedToTOS;
-                  }),
-                  child: const Text(
-                    'Ich stimme der Speicherung und Nutzung \n meiner Daten zu.',
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Row(
+        key: _formKey,
+        child: Padding(
+          padding: const EdgeInsets.all(25),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              const Spacer(),
-              OutlinedButton(
-                style: OutlinedButton.styleFrom(
-                  primary: Colors.black,
+              const SizedBox(height: 32.0),
+              TextFormField(
+                decoration: const InputDecoration(
+                  labelText: 'Vorname',
                 ),
-                onPressed: () {
-                  setState(() {
-                    if (_formKey.currentState.validate()) {
-                      if (_agreedToTOS) {
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                            content: Text(
-                                'Daten werden verarbeitet, bitte warten Sie')));
-                        _submit();
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                            content: Text(
-                                'Sie müssen der Verarbeitung Ihrer Daten zustimmen')));
-                      }
-                    }
-                  });
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Vorname ist erforderlich!';
+                  }
+                  fname = value;
+                  return null;
                 },
-                child: const Text('Registrieren'),
+              ),
+              const SizedBox(height: 16.0),
+              TextFormField(
+                decoration: const InputDecoration(
+                  labelText: 'Nachname',
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Nachname ist erforderlich!';
+                  }
+                  lname = value;
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16.0),
+              TextFormField(
+                decoration: const InputDecoration(
+                  labelText: 'Telefon',
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Telefonnummer ist erforderlich!';
+                  }
+                  phone = value;
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16.0),
+              new Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: <Widget>[
+                  new Flexible(
+                    child: TextFormField(
+                      decoration: const InputDecoration(
+                        labelText: 'Postleitzahl',
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'PLZ ist erforderlich!';
+                        }
+                        plz = value;
+                        return null;
+                      },
+                    ),
+                  ),
+                  SizedBox(width: 15.0,),
+                  new Flexible(
+                    child: TextFormField(
+                      decoration: const InputDecoration(
+                        labelText: 'Stadt',
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Stadt ist erforderlich!';
+                        }
+                        city = value;
+                        return null;
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16.0),
+              TextFormField(
+                decoration: const InputDecoration(
+                  labelText: 'Straße',
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Straße ist erforderlich!';
+                  }
+                  street = value;
+                  return null;
+                },
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16.0),
+                child: Row(
+                  children: <Widget>[
+                    Checkbox(
+                        value: _agreedToTOS,
+                        onChanged: (bool newValue) {
+                          setState(() {
+                            _agreedToTOS = newValue;
+                          });
+                        }),
+                    GestureDetector(
+                      onTap: () => setState(() {
+                        _agreedToTOS = !_agreedToTOS;
+                      }),
+                      child: new Container(
+                          constraints: new BoxConstraints(
+                              maxWidth: MediaQuery.of(context).size.width - 128),
+                          child: Text('Ich stimme der Speicherung und Nutzung meiner Daten zu.'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Row(
+                children: <Widget>[
+                  const Spacer(),
+                  OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      primary: Colors.black,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        if (_formKey.currentState.validate()) {
+                          if (_agreedToTOS) {
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                content: Text(
+                                    'Daten werden verarbeitet, bitte warten Sie')));
+                            _submit();
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                content: Text(
+                                    'Sie müssen der Verarbeitung Ihrer Daten zustimmen')));
+                          }
+                        }
+                      });
+                    },
+                    child: const Text('Registrieren'),
+                  ),
+                ],
               ),
             ],
           ),
-        ],
-      ),
-    );
+        ));
   }
 
   void _submit() {
     FirebaseAuth.instance.signInAnonymously().then((value) {
+      String address = street + ", " + plz + " " + city;
       setState(() {
-        storeNewUser(value.user, fname, lname, phone, adress);
+        storeNewUser(value.user, fname, lname, phone, address);
       });
     });
   }
 
-  void _setAgreedToTOS(bool newValue) {}
-
   String uid;
 
   storeNewUser(User user, String fname, String lname, String phone,
-      String adress) async {
+      String address) async {
     FirebaseFirestore.instance.collection('/users').add({
       "firstName": fname,
       "lastName": lname,
       "phone": phone,
-      "address": adress,
+      "address": address,
       'uid': user.uid,
     }).catchError((e) {
       print(e);
@@ -315,24 +359,9 @@ class _MyHomePageState extends State<MyHomePage>
         await File('${dir.path}/${user.uid}.png').create(recursive: true);
     await file.writeAsBytes(bytes);
 
-    UploadTask task;
-
-    final Reference firebaseStorageRef =
-        FirebaseStorage.instance.ref().child('assets/${user.uid}.png');
-    task = firebaseStorageRef.putFile(file);
-
-    TaskSnapshot snapshot = await task;
-    String downloadUrl = await snapshot.ref.getDownloadURL();
-    _save(downloadUrl);
+    _save(file.path);
     setState(() {
-      qrUrl = downloadUrl;
+      qrUrl = file.path;
     });
-  }
-
-  _save(String qrImageUrl) async {
-    final prefs = await SharedPreferences.getInstance();
-    final key = 'qrUrl';
-    final value = qrImageUrl;
-    prefs.setString(key, value);
   }
 }
