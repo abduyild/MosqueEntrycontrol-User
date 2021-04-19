@@ -100,12 +100,6 @@ class _MyHomePageState extends State<MyHomePage>
   @override
   Widget build(BuildContext context) {
     _read();
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
       appBar: AppBar(
         title: Text("Mosque Entrycontrol"),
@@ -171,7 +165,7 @@ class _MyHomePageState extends State<MyHomePage>
   String adress = "";
   String plz = "";
   String city = "";
-  String street  = "";
+  String street = "";
 
   @override
   Widget registerForm(BuildContext context) {
@@ -239,7 +233,9 @@ class _MyHomePageState extends State<MyHomePage>
                       },
                     ),
                   ),
-                  SizedBox(width: 15.0,),
+                  SizedBox(
+                    width: 15.0,
+                  ),
                   new Flexible(
                     child: TextFormField(
                       decoration: const InputDecoration(
@@ -285,9 +281,10 @@ class _MyHomePageState extends State<MyHomePage>
                         _agreedToTOS = !_agreedToTOS;
                       }),
                       child: new Container(
-                          constraints: new BoxConstraints(
-                              maxWidth: MediaQuery.of(context).size.width - 128),
-                          child: Text('Ich stimme der Speicherung und Nutzung meiner Daten zu.'),
+                        constraints: new BoxConstraints(
+                            maxWidth: MediaQuery.of(context).size.width - 128),
+                        child: Text(
+                            'Ich stimme der Speicherung und Nutzung meiner Daten zu.'),
                       ),
                     ),
                   ],
@@ -326,8 +323,8 @@ class _MyHomePageState extends State<MyHomePage>
   }
 
   void _submit() {
+    String address = street + ", " + plz + " " + city;
     FirebaseAuth.instance.signInAnonymously().then((value) {
-      String address = street + ", " + plz + " " + city;
       setState(() {
         storeNewUser(value.user, fname, lname, phone, address);
       });
