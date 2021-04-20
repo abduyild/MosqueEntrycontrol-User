@@ -11,9 +11,21 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
+import 'package:firebase_remote_config/firebase_remote_config.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+  final RemoteConfig remoteConfig = await RemoteConfig.instance;
+  await remoteConfig.setConfigSettings(RemoteConfigSettings(
+    fetchTimeout: Duration(seconds: 10),
+    minimumFetchInterval: Duration(hours: 1),
+  ));
+  await remoteConfig.setDefaults(<String, dynamic>{
+    'welcome': 'default welcome',
+    'hello': 'default hello',
+  });
+  RemoteConfigValue(null, ValueSource.valueStatic);
   await Firebase.initializeApp();
   runApp(MyApp());
 }
