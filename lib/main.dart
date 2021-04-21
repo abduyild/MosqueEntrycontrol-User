@@ -343,11 +343,9 @@ class _MyHomePageState extends State<MyHomePage>
     });
   }
 
-  String uid;
-
   storeNewUser(User user, String fname, String lname, String phone,
       String address) async {
-    FirebaseFirestore.instance.collection('/users').add({
+    var docref = await FirebaseFirestore.instance.collection('/users').add({
       "firstName": fname,
       "lastName": lname,
       "phone": phone,
@@ -356,16 +354,18 @@ class _MyHomePageState extends State<MyHomePage>
     }).catchError((e) {
       print(e);
     });
+    DocumentSnapshot docSnap = await docref.get();
+    var reference = docSnap.reference.id;
     HttpClient httpClient = new HttpClient();
     var request = await httpClient.getUrl(Uri.parse(
-        "https://api.qrserver.com/v1/create-qr-code/?data=${user.uid}&size=250x250"));
+        "https://api.qrserver.com/v1/create-qr-code/?data=${reference}&size=250x250"));
     var response = await request.close();
     var bytes = await consolidateHttpClientResponseBytes(response);
     final Directory directory = await getApplicationDocumentsDirectory();
     final dir =
         await Directory(directory.path + "/assets").create(recursive: true);
     File file =
-        await File('${dir.path}/${user.uid}.png').create(recursive: true);
+        await File('${dir.path}/${reference}.png').create(recursive: true);
     await file.writeAsBytes(bytes);
 
     _save(file.path);
