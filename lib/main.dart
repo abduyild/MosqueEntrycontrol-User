@@ -1,32 +1,17 @@
 import 'dart:io';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:http/http.dart' as http;
 
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:path_provider/path_provider.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
-import 'package:firebase_remote_config/firebase_remote_config.dart';
+
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
-  final RemoteConfig remoteConfig = await RemoteConfig.instance;
-  await remoteConfig.setConfigSettings(RemoteConfigSettings(
-    fetchTimeout: Duration(seconds: 10),
-    minimumFetchInterval: Duration(hours: 1),
-  ));
-  await remoteConfig.setDefaults(<String, dynamic>{
-    'welcome': 'default welcome',
-    'hello': 'default hello',
-  });
-  RemoteConfigValue(null, ValueSource.valueStatic);
-  await Firebase.initializeApp();
   runApp(MyApp());
 }
 
@@ -92,7 +77,9 @@ class _MyHomePageState extends State<MyHomePage>
     final prefs = await SharedPreferences.getInstance();
     final key = 'qrUrl';
     final value = prefs.getString(key) ?? "";
-    qrUrl = value;
+    setState(() {
+      qrUrl = value;
+    });
   }
 
   _save(String qrImageUrl) async {
@@ -132,15 +119,13 @@ class _MyHomePageState extends State<MyHomePage>
       backgroundColor: Colors.white,
       body: ListView(
         children: [
-          FirebaseAuth.instance.currentUser != null
-              ? getLoggedIn(context)
-              : registerForm(context)
+          getContent(context)
         ],
       ),
     );
   }
 
-  Widget getLoggedIn(BuildContext context) {
+  Widget getContent(BuildContext context) {
     return Center(
       child: Column(
         children: [
@@ -169,7 +154,7 @@ class _MyHomePageState extends State<MyHomePage>
   }
 
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  bool _agreedToTOS = true;
+  bool _agreedToTOS = false;
 
   String fname = "";
   String lname = "";
@@ -178,8 +163,8 @@ class _MyHomePageState extends State<MyHomePage>
   String plz = "";
   String city = "";
   String street = "";
+  String number = "";
 
-  @override
   Widget registerForm(BuildContext context) {
     return Form(
         key: _formKey,
@@ -188,7 +173,7 @@ class _MyHomePageState extends State<MyHomePage>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              const SizedBox(height: 32.0),
+              const SizedBox(height: 12.0),
               TextFormField(
                 decoration: const InputDecoration(
                   labelText: 'Vorname',
@@ -246,7 +231,7 @@ class _MyHomePageState extends State<MyHomePage>
                     ),
                   ),
                   SizedBox(
-                    width: 15.0,
+                    width: 16.0,
                   ),
                   new Flexible(
                     child: TextFormField(
@@ -265,17 +250,41 @@ class _MyHomePageState extends State<MyHomePage>
                 ],
               ),
               const SizedBox(height: 16.0),
-              TextFormField(
-                decoration: const InputDecoration(
-                  labelText: 'Straße',
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Straße ist erforderlich!';
-                  }
-                  street = value;
-                  return null;
-                },
+              new Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: <Widget>[
+                  new Flexible(
+                    child: TextFormField(
+                      decoration: const InputDecoration(
+                        labelText: 'Straße',
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Straße ist erforderlich!';
+                        }
+                        street = value;
+                        return null;
+                      },
+                    ),
+                  ),
+                  SizedBox(
+                    width: 16.0,
+                  ),
+                  new Flexible(
+                    child: TextFormField(
+                      decoration: const InputDecoration(
+                        labelText: 'Hausnummer',
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Hausnummer ist erforderlich!';
+                        }
+                        number = value;
+                        return null;
+                      },
+                    ),
+                  ),
+                ],
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 16.0),
@@ -335,42 +344,42 @@ class _MyHomePageState extends State<MyHomePage>
   }
 
   void _submit() {
-    String address = street + ", " + plz + " " + city;
-    FirebaseAuth.instance.signInAnonymously().then((value) {
-      setState(() {
-        storeNewUser(value.user, fname, lname, phone, address);
-      });
+    String address = street + " " + number + ", " + plz + " " + city;
+    setState(() {
+      storeNewUser(fname, lname, phone, address);
     });
   }
 
-  storeNewUser(User user, String fname, String lname, String phone,
+  storeNewUser(String fname, String lname, String phone,
       String address) async {
-    var docref = await FirebaseFirestore.instance.collection('/users').add({
-      "firstName": fname,
-      "lastName": lname,
-      "phone": phone,
-      "address": address,
-      'uid': user.uid,
-    }).catchError((e) {
-      print(e);
-    });
-    DocumentSnapshot docSnap = await docref.get();
-    var reference = docSnap.reference.id;
+    var reference = fname + " " + lname + ";" + phone + ";" + address;
+    var refString = replaceWhitespace(reference);
+    if(refString == "") {
+      return;
+    }
     HttpClient httpClient = new HttpClient();
     var request = await httpClient.getUrl(Uri.parse(
-        "https://api.qrserver.com/v1/create-qr-code/?data=${reference}&size=250x250"));
+        "https://api.qrserver.com/v1/create-qr-code/?data=${refString}&size=250x250"));
     var response = await request.close();
     var bytes = await consolidateHttpClientResponseBytes(response);
     final Directory directory = await getApplicationDocumentsDirectory();
     final dir =
         await Directory(directory.path + "/assets").create(recursive: true);
     File file =
-        await File('${dir.path}/${reference}.png').create(recursive: true);
+        await File('${dir.path}/${fname}.png').create(recursive: true);
     await file.writeAsBytes(bytes);
 
     _save(file.path);
     setState(() {
       qrUrl = file.path;
     });
+  }
+
+  String replaceWhitespace(String s) {
+    if (s == null) {
+      return "";
+    }
+    final pattern = RegExp('\\s+');
+    return s.replaceAll(pattern, "+");
   }
 }
