@@ -36,6 +36,8 @@ dependencies:
   flutter_colorpicker: ^0.4.0
   path_provider: ^2.0.1
   shared_preferences: ^2.0.5
+  flutter_launcher_icons: "^0.9.0"
+
 
 dev_dependencies:
   flutter_test:
@@ -85,3 +87,8 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/custom-fonts/#from-packages
+
+flutter_icons:
+  image_path: "assets/logo.png"
+  android: true
+  ios: true

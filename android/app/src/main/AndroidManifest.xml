@@ -14,7 +14,7 @@
 
     <application
         android:name="io.flutter.app.FlutterApplication"
-        android:label="mosque_entrycontrol"
+        android:label="Moschee Ausweis"
         android:icon="@mipmap/ic_launcher">
 
 

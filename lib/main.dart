@@ -8,8 +8,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/foundation.dart';
 
-
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(MyApp());
@@ -20,15 +18,12 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Mosque Entrycontrol',
+      title: 'Moschee-Ausweis',
       theme: ThemeData(
         brightness: Brightness.light,
         primaryColor: Colors.white,
         accentColor: Colors.white,
         scaffoldBackgroundColor: Colors.white,
-        textSelectionHandleColor: Colors.black,
-        textSelectionColor: Colors.black12,
-        cursorColor: Colors.black,
         toggleableActiveColor: Colors.black,
         inputDecorationTheme: InputDecorationTheme(
           border: const OutlineInputBorder(
@@ -46,7 +41,7 @@ class MyApp extends StatelessWidget {
         ),
       ),
       debugShowCheckedModeBanner: false,
-      home: MyHomePage(title: 'Mosque Entrycontrol'),
+      home: MyHomePage(title: ''),
     );
   }
 }
@@ -64,6 +59,8 @@ class _MyHomePageState extends State<MyHomePage>
     with SingleTickerProviderStateMixin {
   _MyHomePageState(this.title);
 
+  String titleText = "Ausweis erstellen";
+
   final title;
 
   String imageUrl;
@@ -72,21 +69,25 @@ class _MyHomePageState extends State<MyHomePage>
   AnimationController _animationController;
 
   String qrUrl = "";
+  String name = "";
 
-  _read() async {
+  _read(String prefKey) async {
     final prefs = await SharedPreferences.getInstance();
-    final key = 'qrUrl';
-    final value = prefs.getString(key) ?? "";
-    setState(() {
-      qrUrl = value;
-    });
+    final value = prefs.getString(prefKey) ?? "";
+    if (prefKey == "qrurl") {
+      setState(() {
+        qrUrl = value;
+      });
+    } else if (prefKey == "name") {
+      setState(() {
+        name = value;
+      });
+    }
   }
 
-  _save(String qrImageUrl) async {
+  _save(String prefKey, String prefValue) async {
     final prefs = await SharedPreferences.getInstance();
-    final key = 'qrUrl';
-    final value = qrImageUrl;
-    prefs.setString(key, value);
+    prefs.setString(prefKey, prefValue);
   }
 
   @override
@@ -98,29 +99,26 @@ class _MyHomePageState extends State<MyHomePage>
 
   @override
   Widget build(BuildContext context) {
-    _read();
+    _read("qrurl");
+    _read("name");
     return Scaffold(
       appBar: AppBar(
-        title: Text("Mosque Entrycontrol"),
-        leading: Icon(
-          Icons.android,
-          color: Colors.greenAccent,
-        ),
-        backgroundColor: Colors.white,
+        title: Text(titleText),
+        backgroundColor: Colors.black12,
         elevation: 0,
         actions: [
           IconButton(
-              icon: Icon(
-            Icons.account_circle_outlined,
-            color: Colors.white,
-          ))
+            icon: Icon(
+              Icons.account_circle_outlined,
+              color: Colors.black,
+            ),
+            onPressed: () {},
+          )
         ],
       ),
       backgroundColor: Colors.white,
       body: ListView(
-        children: [
-          getContent(context)
-        ],
+        children: [getContent(context)],
       ),
     );
   }
@@ -138,11 +136,22 @@ class _MyHomePageState extends State<MyHomePage>
                 child: Container(
                   padding: EdgeInsets.only(top: 10),
                   child: qrUrl != ""
-                      ? Image.file(
-                          File(qrUrl),
-                          height: 250.0,
-                          width: 250.0,
-                        )
+                      ? new Column(children: <Widget>[
+                          Image.file(
+                            File(qrUrl),
+                            height: 250.0,
+                            width: 250.0,
+                          ),
+                          const SizedBox(height: 24.0),
+                          new Container(
+                            constraints: new BoxConstraints(
+                                maxWidth:
+                                    MediaQuery.of(context).size.width - 128),
+                            child: Text(name,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(fontSize: 20.0)),
+                          ),
+                        ])
                       : registerForm(context),
                 ),
               )
@@ -166,6 +175,7 @@ class _MyHomePageState extends State<MyHomePage>
   String number = "";
 
   Widget registerForm(BuildContext context) {
+    final node = FocusScope.of(context);
     return Form(
         key: _formKey,
         child: Padding(
@@ -175,6 +185,8 @@ class _MyHomePageState extends State<MyHomePage>
             children: <Widget>[
               const SizedBox(height: 12.0),
               TextFormField(
+                textInputAction: TextInputAction.next,
+                onEditingComplete: () => node.nextFocus(),
                 decoration: const InputDecoration(
                   labelText: 'Vorname',
                 ),
@@ -188,6 +200,8 @@ class _MyHomePageState extends State<MyHomePage>
               ),
               const SizedBox(height: 16.0),
               TextFormField(
+                textInputAction: TextInputAction.next,
+                onEditingComplete: () => node.nextFocus(),
                 decoration: const InputDecoration(
                   labelText: 'Nachname',
                 ),
@@ -201,6 +215,8 @@ class _MyHomePageState extends State<MyHomePage>
               ),
               const SizedBox(height: 16.0),
               TextFormField(
+                textInputAction: TextInputAction.next,
+                onEditingComplete: () => node.nextFocus(),
                 decoration: const InputDecoration(
                   labelText: 'Telefon',
                 ),
@@ -218,6 +234,8 @@ class _MyHomePageState extends State<MyHomePage>
                 children: <Widget>[
                   new Flexible(
                     child: TextFormField(
+                      textInputAction: TextInputAction.next,
+                      onEditingComplete: () => node.nextFocus(),
                       decoration: const InputDecoration(
                         labelText: 'Postleitzahl',
                       ),
@@ -235,6 +253,8 @@ class _MyHomePageState extends State<MyHomePage>
                   ),
                   new Flexible(
                     child: TextFormField(
+                      textInputAction: TextInputAction.next,
+                      onEditingComplete: () => node.nextFocus(),
                       decoration: const InputDecoration(
                         labelText: 'Stadt',
                       ),
@@ -255,6 +275,8 @@ class _MyHomePageState extends State<MyHomePage>
                 children: <Widget>[
                   new Flexible(
                     child: TextFormField(
+                      textInputAction: TextInputAction.next,
+                      onEditingComplete: () => node.nextFocus(),
                       decoration: const InputDecoration(
                         labelText: 'Straße',
                       ),
@@ -305,7 +327,7 @@ class _MyHomePageState extends State<MyHomePage>
                         constraints: new BoxConstraints(
                             maxWidth: MediaQuery.of(context).size.width - 128),
                         child: Text(
-                            'Ich stimme der Speicherung und Nutzung meiner Daten zu.'),
+                            'Ich stimme der Speicherung und Nutzung meiner Daten zu. Für Information zum Umgang mit diesen Daten, klicken Sie unten auf den Knopf'),
                       ),
                     ),
                   ],
@@ -313,7 +335,6 @@ class _MyHomePageState extends State<MyHomePage>
               ),
               Row(
                 children: <Widget>[
-                  const Spacer(),
                   OutlinedButton(
                     style: OutlinedButton.styleFrom(
                       primary: Colors.black,
@@ -336,12 +357,55 @@ class _MyHomePageState extends State<MyHomePage>
                     },
                     child: const Text('Registrieren'),
                   ),
-                ],
+          const Spacer(),
+          OutlinedButton(
+            style: OutlinedButton.styleFrom(
+              primary: Colors.black,
+            ),
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (BuildContext context) => _buildPopupDialog(context),
+              );
+            },
+            child: const Text('Datennutzung'),
+          ),
+
+      ],
               ),
             ],
           ),
         ));
   }
+
+  Widget _buildPopupDialog(BuildContext context) {
+    return new AlertDialog(
+      title: const Text('Datennutzung'),
+      content: new Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text("Es ist lediglich befugtes Personal ermächtigt, Ihre Daten zu erheben und einzusehen."
+              "Alle interessierte Moscheen untergehen einer Schulung und stimmen der Datenschutzgerechten Verarbeitung und Handhabung Ihrer Daten zu."
+              "Ihre Daten werden verschlüsselt an einen Drittanbieter (goqr.me) zum erstellen des QR-Codes gesendet. "
+              "Ihre persönlichen Daten sind auf dem QR-Code gespeichert. Sie sind dafür verantwortlich, diese Daten lediglich entsprechenden befugten Stellen zu zeigen (Moscheen welche die App zum Erfassen verwenden."
+              "Ihre Daten werden zudem nach erfolgreicher Anmeldung auf einem passwort-geschützten Server gespeichert und sind lediglich für die nächsten 30 Tage von befugtem Personal, bei einem Falle einer positiv getesteten Person unter den Anmeldungen, einsehbar."),
+        ],
+      ),
+      actions: <Widget>[
+        new OutlinedButton(
+          onPressed: () {
+            Navigator.of(context).pop();
+          },
+          style: OutlinedButton.styleFrom(
+            primary: Colors.black,
+          ),
+          child: const Text('Schließen'),
+        ),
+      ],
+    );
+  }
+
 
   void _submit() {
     String address = street + " " + number + ", " + plz + " " + city;
@@ -350,27 +414,27 @@ class _MyHomePageState extends State<MyHomePage>
     });
   }
 
-  storeNewUser(String fname, String lname, String phone,
-      String address) async {
-    var reference = fname + " " + lname + ";" + phone + ";" + address;
+  storeNewUser(String fname, String lname, String phone, String address) async {
+    var reference = fname + ";" + lname + ";" + phone + ";" + address;
     var refString = replaceWhitespace(reference);
-    if(refString == "") {
+    if (refString == "") {
       return;
     }
     HttpClient httpClient = new HttpClient();
     var request = await httpClient.getUrl(Uri.parse(
-        "https://api.qrserver.com/v1/create-qr-code/?data=${refString}&size=250x250"));
+        "https://api.qrserver.com/v1/create-qr-code/?data=${refString}&size=300x300"));
     var response = await request.close();
     var bytes = await consolidateHttpClientResponseBytes(response);
     final Directory directory = await getApplicationDocumentsDirectory();
     final dir =
         await Directory(directory.path + "/assets").create(recursive: true);
-    File file =
-        await File('${dir.path}/${fname}.png').create(recursive: true);
+    File file = await File('${dir.path}/${fname}.png').create(recursive: true);
     await file.writeAsBytes(bytes);
 
-    _save(file.path);
+    _save("qrurl", file.path);
+    _save("name", fname + " " + lname);
     setState(() {
+      titleText = "Moschee Ausweis";
       qrUrl = file.path;
     });
   }
