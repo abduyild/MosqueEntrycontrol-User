@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/foundation.dart';
+import 'package:confirm_dialog/confirm_dialog.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -108,11 +109,25 @@ class _MyHomePageState extends State<MyHomePage>
         elevation: 0,
         actions: [
           IconButton(
-            icon: Icon(
+            icon: qrUrl != "" ? Icon(Icons.logout,
+              color: Colors.black) : Icon(
               Icons.account_circle_outlined,
               color: Colors.black,
             ),
-            onPressed: () {},
+            onPressed: () async{
+              if(qrUrl != "") {
+                if (await confirm(
+                context,
+                title: Text('Bestätigen'),
+              content: Text('Möchten Sie sich wirklich abmelden? Sie müssen dann erneut alle Daten eingeben.'),
+              textOK: Text('Ja'),
+              textCancel: Text('Nein'),
+              )) {
+                  qrUrl = "";
+                  _save("qrurl", "");
+              }
+              }
+            },
           )
         ],
       ),
