@@ -19,7 +19,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Moschee-Ausweis',
+      title: 'Moschee Ausweis',
       theme: ThemeData(
         brightness: Brightness.light,
         primaryColor: Colors.white,
