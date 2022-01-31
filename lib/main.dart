@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:uuid/uuid.dart';
+import 'dart:convert'; // for using json.decode()
 
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -12,6 +14,30 @@ import 'package:confirm_dialog/confirm_dialog.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(MyApp());
+}
+
+// TODO: add check for date
+Future<VaccinationStatus> fetchVaccinationStatus(String uuid) async {
+  final response =
+      await http.get(Uri.parse('https://camii.online/checkStatus?id=${uuid}'));
+  return VaccinationStatus.fromJson(json.decode(response.body));
+}
+
+class VaccinationStatus {
+  final String vaccinated;
+  final String date;
+
+  const VaccinationStatus({
+    this.vaccinated,
+    this.date,
+  });
+
+  factory VaccinationStatus.fromJson(Map<String, dynamic> json) {
+    return VaccinationStatus(
+      vaccinated: json["vaccinated"],
+      date: json["date"],
+    );
+  }
 }
 
 class MyApp extends StatelessWidget {
@@ -71,19 +97,33 @@ class _MyHomePageState extends State<MyHomePage>
 
   String qrUrl = "";
   String name = "";
+  String vac = "";
 
-  _read(String prefKey) async {
+  _read() async {
     final prefs = await SharedPreferences.getInstance();
-    final value = prefs.getString(prefKey) ?? "";
-    if (prefKey == "qrurl") {
-      setState(() {
-        qrUrl = value;
-      });
-    } else if (prefKey == "name") {
-      setState(() {
-        name = value;
-      });
+    String _qrUrl = prefs.getString("qrUrl") ?? "";
+    String _name = prefs.getString("name") ?? "";
+    String _vac = prefs.getString("vac") ?? "";
+    String _uuid = prefs.getString("uuid") ?? "";
+    bool _confirmedVac = await confirmedVac(_uuid);
+    setState(()  {
+      qrUrl = _qrUrl;
+      name = _name;
+      if (_confirmedVac) {
+        setState(() {
+          vac = _vac;
+        });
+      }
+    });
+  }
+
+  Future<bool> confirmedVac(String uuid) async {
+    VaccinationStatus _vacStatus = await fetchVaccinationStatus(uuid);
+    if (_vacStatus.vaccinated == "true") {
+      _save("vac", "true_checked");
+      return true;
     }
+    return false;
   }
 
   _save(String prefKey, String prefValue) async {
@@ -100,8 +140,7 @@ class _MyHomePageState extends State<MyHomePage>
 
   @override
   Widget build(BuildContext context) {
-    _read("qrurl");
-    _read("name");
+    _read();
     return Scaffold(
       appBar: AppBar(
         title: Text(titleText),
@@ -109,23 +148,25 @@ class _MyHomePageState extends State<MyHomePage>
         elevation: 0,
         actions: [
           IconButton(
-            icon: qrUrl != "" ? Icon(Icons.logout,
-              color: Colors.black) : Icon(
-              Icons.account_circle_outlined,
-              color: Colors.black,
-            ),
-            onPressed: () async{
-              if(qrUrl != "") {
+            icon: qrUrl != ""
+                ? Icon(Icons.logout, color: Colors.black)
+                : Icon(
+                    Icons.account_circle_outlined,
+                    color: Colors.black,
+                  ),
+            onPressed: () async {
+              if (qrUrl != "") {
                 if (await confirm(
-                context,
-                title: Text('Bestätigen'),
-              content: Text('Möchten Sie sich wirklich abmelden? Sie müssen dann erneut alle Daten eingeben.'),
-              textOK: Text('Ja'),
-              textCancel: Text('Nein'),
-              )) {
+                  context,
+                  title: Text('Bestätigen'),
+                  content: Text(
+                      'Möchten Sie sich wirklich abmelden? Sie müssen dann erneut alle Daten eingeben.'),
+                  textOK: Text('Ja'),
+                  textCancel: Text('Nein'),
+                )) {
                   qrUrl = "";
                   _save("qrurl", "");
-              }
+                }
               }
             },
           )
@@ -162,9 +203,14 @@ class _MyHomePageState extends State<MyHomePage>
                             constraints: new BoxConstraints(
                                 maxWidth:
                                     MediaQuery.of(context).size.width - 128),
-                            child: Text(name,
-                                textAlign: TextAlign.center,
-                                style: TextStyle(fontSize: 20.0)),
+                            child: vac == "true_checked"
+                                ? Text(name,
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                        fontSize: 20.0, color: Colors.green))
+                                : Text(name,
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(fontSize: 20.0)),
                           ),
                         ])
                       : registerForm(context),
@@ -179,6 +225,10 @@ class _MyHomePageState extends State<MyHomePage>
 
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   bool _agreedToTOS = false;
+  bool _vaccinated = false;
+
+  var uuid = Uuid();
+  HttpClient httpClient = new HttpClient();
 
   String fname = "";
   String lname = "";
@@ -252,6 +302,45 @@ class _MyHomePageState extends State<MyHomePage>
                       textInputAction: TextInputAction.next,
                       onEditingComplete: () => node.nextFocus(),
                       decoration: const InputDecoration(
+                        labelText: 'Straße',
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Straße ist erforderlich!';
+                        }
+                        street = value;
+                        return null;
+                      },
+                    ),
+                  ),
+                  SizedBox(
+                    width: 16.0,
+                  ),
+                  new Flexible(
+                    child: TextFormField(
+                      decoration: const InputDecoration(
+                        labelText: 'Hausnummer',
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Hausnummer ist erforderlich!';
+                        }
+                        number = value;
+                        return null;
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16.0),
+              new Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: <Widget>[
+                  new Flexible(
+                    child: TextFormField(
+                      textInputAction: TextInputAction.next,
+                      onEditingComplete: () => node.nextFocus(),
+                      decoration: const InputDecoration(
                         labelText: 'Postleitzahl',
                       ),
                       validator: (value) {
@@ -284,44 +373,29 @@ class _MyHomePageState extends State<MyHomePage>
                   ),
                 ],
               ),
-              const SizedBox(height: 16.0),
-              new Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: <Widget>[
-                  new Flexible(
-                    child: TextFormField(
-                      textInputAction: TextInputAction.next,
-                      onEditingComplete: () => node.nextFocus(),
-                      decoration: const InputDecoration(
-                        labelText: 'Straße',
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16.0),
+                child: Row(
+                  children: <Widget>[
+                    Checkbox(
+                        value: _vaccinated,
+                        onChanged: (bool newValue) {
+                          setState(() {
+                            _vaccinated = newValue;
+                          });
+                        }),
+                    GestureDetector(
+                      onTap: () => setState(() {
+                        _vaccinated = !_vaccinated;
+                      }),
+                      child: new Container(
+                        constraints: new BoxConstraints(
+                            maxWidth: MediaQuery.of(context).size.width - 128),
+                        child: Text('Ich bin geimpft / genesen'),
                       ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Straße ist erforderlich!';
-                        }
-                        street = value;
-                        return null;
-                      },
                     ),
-                  ),
-                  SizedBox(
-                    width: 16.0,
-                  ),
-                  new Flexible(
-                    child: TextFormField(
-                      decoration: const InputDecoration(
-                        labelText: 'Hausnummer',
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Hausnummer ist erforderlich!';
-                        }
-                        number = value;
-                        return null;
-                      },
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 16.0),
@@ -372,21 +446,21 @@ class _MyHomePageState extends State<MyHomePage>
                     },
                     child: const Text('Registrieren'),
                   ),
-          const Spacer(),
-          OutlinedButton(
-            style: OutlinedButton.styleFrom(
-              primary: Colors.black,
-            ),
-            onPressed: () {
-              showDialog(
-                context: context,
-                builder: (BuildContext context) => _buildPopupDialog(context),
-              );
-            },
-            child: const Text('Datennutzung'),
-          ),
-
-      ],
+                  const Spacer(),
+                  OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      primary: Colors.black,
+                    ),
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (BuildContext context) =>
+                            _buildPopupDialog(context),
+                      );
+                    },
+                    child: const Text('Datennutzung'),
+                  ),
+                ],
               ),
             ],
           ),
@@ -400,7 +474,8 @@ class _MyHomePageState extends State<MyHomePage>
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text("Es ist lediglich befugtes Personal ermächtigt, Ihre Daten zu erheben und einzusehen."
+          Text(
+              "Es ist lediglich befugtes Personal ermächtigt, Ihre Daten zu erheben und einzusehen."
               "Alle interessierte Moscheen untergehen einer Schulung und stimmen der Datenschutzgerechten Verarbeitung und Handhabung Ihrer Daten zu."
               "Ihre Daten werden verschlüsselt an einen Drittanbieter (goqr.me) zum erstellen des QR-Codes gesendet. "
               "Ihre persönlichen Daten sind auf dem QR-Code gespeichert. Sie sind dafür verantwortlich, diese Daten lediglich entsprechenden befugten Stellen zu zeigen (Moscheen welche die App zum Erfassen verwenden."
@@ -421,21 +496,31 @@ class _MyHomePageState extends State<MyHomePage>
     );
   }
 
-
   void _submit() {
     String address = street + " " + number + ", " + plz + " " + city;
     setState(() {
-      storeNewUser(fname, lname, phone, address);
+      storeNewUser(fname, lname, phone, address, _vaccinated);
     });
   }
 
-  storeNewUser(String fname, String lname, String phone, String address) async {
-    var reference = fname + ";" + lname + ";" + phone + ";" + address;
+  storeNewUser(String fname, String lname, String phone, String address,
+      bool vaccinated) async {
+    String _uuid = uuid.v4();
+    var reference = _uuid +
+        ";" +
+        fname +
+        ";" +
+        lname +
+        ";" +
+        phone +
+        ";" +
+        address +
+        ";" +
+        vaccinated.toString();
     var refString = replaceWhitespace(reference);
     if (refString == "") {
       return;
     }
-    HttpClient httpClient = new HttpClient();
     var request = await httpClient.getUrl(Uri.parse(
         "https://api.qrserver.com/v1/create-qr-code/?data=${refString}&size=300x300"));
     var response = await request.close();
@@ -448,6 +533,8 @@ class _MyHomePageState extends State<MyHomePage>
 
     _save("qrurl", file.path);
     _save("name", fname + " " + lname);
+    _save("vac", _vaccinated.toString());
+    _save("uuid", _uuid);
     setState(() {
       titleText = "Moschee Ausweis";
       qrUrl = file.path;
