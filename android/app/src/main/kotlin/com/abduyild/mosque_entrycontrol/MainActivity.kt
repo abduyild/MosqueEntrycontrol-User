@@ -1,4 +1,4 @@
-package com.abduyild.mosque_entrycontrol
+package com.abduyild.eventausweis
 
 import io.flutter.embedding.android.FlutterActivity
 

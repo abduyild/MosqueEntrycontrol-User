@@ -1,4 +1,4 @@
-# mosque_entrycontrol
+# eventausweis
 
 A project to control the attendants of a mosque.
 
